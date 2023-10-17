@@ -12,17 +12,18 @@ GIT_COMMIT_HASH  := $(shell git rev-parse --short HEAD)
 AWS_REGION       := $(AWS_REGION)
 AWS_ACCOUNT_ID   := $(AWS_ACCOUNT_ID)
 
-NAME_VENDOR      := dwchiang
+NAME_VENDOR      := moneymatch
 NAME_PROJECT     := nginx-php-fpm
 NAME_IMAGE_REPO  := $(NAME_VENDOR)/$(NAME_PROJECT)
-TAG_REPO_URI_AWS := public.ecr.aws/n0b9n5m7/nginx-php-fpm
+REPO_HOST_AWS    := ${REPO_HOST}
+TAG_REPO_URI_AWS := ${TAG_REPO_URI_AWS}
 
 VERSION_LARAVEL      := $(VERSION_LARAVEL)
 NAME_PROJECT_LARAVEL := laravel-$(VERSION_LARAVEL)
 NAME_PROJECT_LARAVEL_BITNAMI := laravel-bitnami-$(VERSION_LARAVEL)
 
 help:
-	@ echo 'Welcome to Makefile of dwchiang/nginx-php-fpm'
+	@ echo 'Welcome to Makefile of moneymatch/nginx-php-fpm'
 	@ echo
 	@ echo 'Usage: make [command]'
 	@ echo
@@ -62,6 +63,8 @@ ifeq ($(IS_LATEST),true)
 	echo 'IS_LATEST=true'
 
 	time docker build \
+	--cache-from "$(NAME_IMAGE_REPO):latest" \
+	--build-arg BUILDKIT_INLINE_CACHE=1	\
 	-f $(VERSION_OS)/Dockerfile-$(VERSION) \
 	-t $(NAME_IMAGE_REPO):$(VERSION) \
 	-t $(NAME_IMAGE_REPO):latest .
@@ -69,6 +72,8 @@ else
 	echo 'IS_LATEST=false or unknown'
 
 	time docker build \
+	--cache-from "$(NAME_IMAGE_REPO):$(VERSION)" \
+	--build-arg BUILDKIT_INLINE_CACHE=1	\
 	-f $(VERSION_OS)/Dockerfile-$(VERSION) \
 	-t $(NAME_IMAGE_REPO):$(VERSION) .
 endif
@@ -81,7 +86,7 @@ release: version cleandocker
 	@ echo '[] Building images and push to Docker Hub & AWS ECR Public...'
 
 	@ echo '[] Login AWS ECR Public...'
-	aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+	aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin ${REPO_HOST_AWS}
 
 	@ echo '[] Login Docker Hub...'
 	cat ~/.docker/dhtoken.txt | docker login -u dwchiang --password-stdin

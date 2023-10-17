@@ -8,7 +8,7 @@ echo "\n"
 date
 pwd
 
-export AWS_DEFAULT_PROFILE=ernest-global
+export AWS_DEFAULT_PROFILE=mm
 
 if docker buildx ls | grep -q buildnginxphpfpm; then
     echo 'found'
@@ -18,7 +18,8 @@ else
     echo 'not found'
 fi
 
-export BUILD_CMD=release
+export BUILD_CMD=build
+# export BUILD_CMD=release
 # export BUILD_CMD=releaseDockerHub
 
 set -e

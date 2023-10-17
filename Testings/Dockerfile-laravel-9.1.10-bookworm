@@ -1,11 +1,12 @@
-ARG VERSION=8.0.10-fpm-bookworm-nginx-1.21.1
-FROM dwchiang/nginx-php-fpm:${VERSION}
+ARG VERSION=8.2.10-fpm-bookworm-node-nginx-1.25.2
+FROM moneymatch/nginx-php-fpm:${VERSION}
 
-LABEL maintainer="Ernest Chiang <me@ernestchiang.com>"
+LABEL maintainer="Kenneth Wong <kenneth.wong@moneymatch.co>"
 
-ARG VERSION_PHP_MINOR
-ARG VERSION_OS
-ENV VERSION_OS=${VERSION_OS} 
+ARG VERSION_PHP_MINOR=8.2
+ARG VERSION_OS=bookworm
+ENV PHP_TIMEZONE='Asia/Kuala_Lumpur'
+ENV VERSION_OS=${VERSION_OS}
 
 ### ----------------------------------------------------------
 ### PHP
@@ -24,10 +25,14 @@ RUN set -x && \
         libfreetype6-dev \
         libpng-dev \
         libjpeg62-turbo-dev \
+        zlib1g-dev \
+        libzip-dev \
+        unzip \
         && \
     # install general usage packages
     apt-get install --no-install-recommends --no-install-suggests -y \
         # for composer
+        openssh-client \
         git \
         && \
     # docker-php
@@ -49,6 +54,7 @@ RUN set -x && \
         gd \
         exif \
         opcache \
+        zip \
         && \
     docker-php-source delete && \
     # php configurations
@@ -77,17 +83,21 @@ RUN set -x && \
 ### Load our app
 ### ----------------------------------------------------------
 
-COPY framework/laravel-9.1.10/public /usr/share/nginx/html
-COPY framework/laravel-9.1.10 /var/www/html
-COPY app/laravel-9 /var/www/html/
+COPY . /var/www/html
 
+# Add the SSH public keys of the Git server to the known hosts (here, github.com)
 RUN set -x && \
+    mkdir -p -m 0700 ~/.ssh && \
+    ssh-keyscan github.com >> ~/.ssh/known_hosts \
+    ssh-keyscan bitbucket.org >> ~/.ssh/known_hosts
+
+RUN --mount=type=ssh set -x && \
     # We don't need hirak/prestissimo since composer 2
     # if [ $(echo "${VERSION_PHP_MINOR} <= 7" | bc) -eq 1 ]; then \
     #     composer global require hirak/prestissimo ; \
     # fi && \
     if [ -f "/var/www/html/composer.lock" ]; then \
-        if [ "${APP_ENV}" == "development" ] || [ "${APP_ENV}" == "dev" || "${APP_ENV}" == "staging" ] || [ "${APP_ENV}" == "stage" ]; then \
+        if [ "${APP_ENV}" == "development" ] || [ "${APP_ENV}" == "dev" || "${APP_ENV}" == "local" ]; then \
             composer install --working-dir=/var/www/html ; \
         else \
             composer install --no-dev --working-dir=/var/www/html ; \
@@ -98,7 +108,7 @@ RUN set -x && \
     touch /var/log/cron.log && \
     # please remove this APP_KEY generate for your production usage
     #   - ref: https://tighten.co/blog/app-key-and-you/
-    php artisan key:generate && \     
+    # php artisan key:generate && \
     chown -R www-data:www-data /usr/share/nginx/html && \
     chown -R www-data:www-data /var/www/html && \
     find /var/www/html/storage -type f -exec chmod 664 {} \; && \
