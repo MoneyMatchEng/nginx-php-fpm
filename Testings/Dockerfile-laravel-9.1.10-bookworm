@@ -1,4 +1,4 @@
-ARG VERSION=8.2.10-fpm-bookworm-node-nginx-1.25.2
+ARG VERSION=8.2.11-fpm-bookworm-node-nginx-1.25.2
 FROM moneymatch/nginx-php-fpm:${VERSION}
 
 LABEL maintainer="Kenneth Wong <kenneth.wong@moneymatch.co>"
